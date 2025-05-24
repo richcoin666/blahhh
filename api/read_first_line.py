@@ -1,26 +1,27 @@
-from fastapi import FastAPI, File, UploadFile
-from fastapi.responses import JSONResponse
-import fitz  # PyMuPDF
-import io
+from fastapi import FastAPI, Request
+import requests
+import fitz  # PyMuPDF for pdf reading
 
 app = FastAPI()
 
 @app.post("/api/read")
-async def read_first_line(file: UploadFile = File(...)):
-    try:
-        if file.content_type != "application/pdf":
-            return JSONResponse({"error": "Only PDF files are supported."}, status_code=400)
+async def read_pdf(request: Request):
+    data = await request.json()
+    file_url = data.get("fileUrl")
+    if not file_url:
+        return {"error": "No file URL provided"}
 
-        contents = await file.read()
-        doc = fitz.open(stream=io.BytesIO(contents), filetype="pdf")
+    # Download PDF from Wix media url
+    resp = requests.get(file_url)
+    if resp.status_code != 200:
+        return {"error": "Failed to download file"}
 
-        text = ""
-        for page in doc:
-            text = page.get_text()
-            if text.strip():
-                break
+    pdf_data = resp.content
 
-        first_line = text.strip().splitlines()[0] if text.strip() else "No text found in PDF"
-        return JSONResponse({"message": f"First line of the doc u submitted is: {first_line}"})
-    except Exception as e:
-        return JSONResponse({"error": str(e)}, status_code=500)
+    # Read first line from PDF using PyMuPDF
+    doc = fitz.open(stream=pdf_data, filetype="pdf")
+    first_page = doc.load_page(0)
+    text = first_page.get_text("text").strip()
+    first_line = text.split("\n")[0] if text else "Empty document"
+
+    return {"message": f"Hey, your first line in your document is: {first_line}"}
