@@ -1,15 +1,14 @@
 {
-  "version": 2,
   "builds": [
     {
-      "src": "api/read_first_line.py",
+      "src": "api/read.py",
       "use": "@vercel/python"
     }
   ],
   "routes": [
     {
       "src": "/api/read",
-      "dest": "api/read_first_line.py"
+      "dest": "api/read.py"
     }
   ]
 }
