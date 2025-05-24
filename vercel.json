@@ -1,9 +1,13 @@
 {
-  "version": 2,
-  "builds": [
-    { "src": "api/read_first_line.py", "use": "@vercel/python" }
-  ],
+  "functions": {
+    "api/read_first_line.py": {
+      "runtime": "python3.9"
+    }
+  },
   "routes": [
-    { "src": "/api/.*", "dest": "/api/read_first_line.py" }
+    {
+      "src": "/api/read",
+      "dest": "api/read_first_line.py"
+    }
   ]
 }

@@ -1,27 +1,33 @@
-from fastapi import FastAPI, Request
+from flask import Request, jsonify
 import requests
-import fitz  # PyMuPDF for pdf reading
+import PyPDF2
+from io import BytesIO
 
-app = FastAPI()
+def handler(request: Request):
+    try:
+        data = request.get_json()
+        file_url = data.get("fileUrl")
 
-@app.post("/api/read")
-async def read_pdf(request: Request):
-    data = await request.json()
-    file_url = data.get("fileUrl")
-    if not file_url:
-        return {"error": "No file URL provided"}
+        if not file_url:
+            return jsonify({"error": "Missing fileUrl"}), 400
 
-    # Download PDF from Wix media url
-    resp = requests.get(file_url)
-    if resp.status_code != 200:
-        return {"error": "Failed to download file"}
+        # Fetch file
+        response = requests.get(file_url)
+        if response.status_code != 200:
+            return jsonify({"error": "Failed to fetch file"}), 500
 
-    pdf_data = resp.content
+        # Read PDF from content
+        reader = PyPDF2.PdfReader(BytesIO(response.content))
+        if not reader.pages:
+            return jsonify({"error": "No pages found in PDF"}), 400
 
-    # Read first line from PDF using PyMuPDF
-    doc = fitz.open(stream=pdf_data, filetype="pdf")
-    first_page = doc.load_page(0)
-    text = first_page.get_text("text").strip()
-    first_line = text.split("\n")[0] if text else "Empty document"
+        # Get first line from first page
+        text = reader.pages[0].extract_text()
+        if not text:
+            return jsonify({"error": "No text extracted"}), 400
 
-    return {"message": f"Hey, your first line in your document is: {first_line}"}
+        first_line = text.strip().split('\n')[0]
+        return jsonify({"firstLine": first_line}), 200
+
+    except Exception as e:
+        return jsonify({"error": "Internal Server Error", "detail": str(e)}), 500
