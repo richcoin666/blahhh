@@ -2,4 +2,5 @@ fastapi
 uvicorn
 requests
 python-docx
-PyMuPDF  # for reading PDFs
+PyMuPDF
+pandas
